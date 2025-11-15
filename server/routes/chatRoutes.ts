@@ -1,15 +1,37 @@
-// server/routes/chatRoutes.js
-import express from "express";
-import { ChatService } from "../services/chatService.js";
+// server/routes/chatRoutes.ts
+import express, { Request, Response, Router } from "express";
+import { ChatService } from "../services/chatService";
 
-const router = express.Router();
+const router: Router = express.Router();
 const chatService = new ChatService();
+
+interface SendMessageRequest extends Request {
+    body: {
+        userId: string;
+        channelId: string;
+        message: string | Array<{ text?: string; fileData?: { mimeType: string; fileUri: string } }>;
+    };
+}
+
+interface HistoryRequest extends Request {
+    query: {
+        userId: string;
+        channelId: string;
+    };
+}
+
+interface ClearRequest extends Request {
+    body: {
+        userId: string;
+        channelId: string;
+    };
+}
 
 /**
  * POST /api/chat/send
  * Gửi message đến AI
  */
-router.post("/send", async (req, res) => {
+router.post("/send", async (req: SendMessageRequest, res: Response) => {
     try {
         const { userId, channelId, message } = req.body;
 
@@ -22,7 +44,7 @@ router.post("/send", async (req, res) => {
         // Chuyển đổi message thành messageParts
         const messageParts = Array.isArray(message) 
             ? message 
-            : [{ text: message }];
+            : [{ text: message as string }];
 
         const response = await chatService.sendMessage(userId, channelId, messageParts);
 
@@ -30,11 +52,11 @@ router.post("/send", async (req, res) => {
             success: true,
             data: response,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error in /api/chat/send:", error);
         res.status(500).json({
             success: false,
-            error: error.message || "Lỗi khi gửi message",
+            error: error?.message || "Lỗi khi gửi message",
         });
     }
 });
@@ -43,7 +65,7 @@ router.post("/send", async (req, res) => {
  * GET /api/chat/history
  * Lấy lịch sử chat
  */
-router.get("/history", async (req, res) => {
+router.get("/history", async (req: HistoryRequest, res: Response) => {
     try {
         const { userId, channelId } = req.query;
 
@@ -59,11 +81,11 @@ router.get("/history", async (req, res) => {
             success: true,
             data: history,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error in /api/chat/history:", error);
         res.status(500).json({
             success: false,
-            error: error.message || "Lỗi khi lấy lịch sử",
+            error: error?.message || "Lỗi khi lấy lịch sử",
         });
     }
 });
@@ -72,7 +94,7 @@ router.get("/history", async (req, res) => {
  * DELETE /api/chat/clear
  * Xóa lịch sử chat
  */
-router.delete("/clear", async (req, res) => {
+router.delete("/clear", async (req: ClearRequest, res: Response) => {
     try {
         const { userId, channelId } = req.body;
 
@@ -88,11 +110,11 @@ router.delete("/clear", async (req, res) => {
             success: true,
             data: result,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error in /api/chat/clear:", error);
         res.status(500).json({
             success: false,
-            error: error.message || "Lỗi khi xóa lịch sử",
+            error: error?.message || "Lỗi khi xóa lịch sử",
         });
     }
 });

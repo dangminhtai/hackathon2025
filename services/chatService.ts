@@ -1,120 +1,119 @@
-// services/chatService.ts - Frontend service
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// services/chatService.ts - Simple chat service với localStorage
+import { GoogleGenAI } from "@google/genai";
+import { getApiKey } from "../config/api";
+import { ERROR_MESSAGES } from "../config/errors";
 
 export interface ChatMessage {
   text: string;
   role: 'user' | 'model';
-  timestamp?: Date;
+  timestamp: Date;
 }
 
-export interface SendMessageRequest {
-  userId: string;
-  channelId: string;
-  message: string | Array<{ text?: string; fileData?: { mimeType: string; fileUri: string } }>;
-}
+const STORAGE_KEY = 'chat_history';
 
-export interface ChatHistoryResponse {
-  success: boolean;
-  data: Array<{
-    user: { parts: Array<{ text?: string; fileData?: any }> };
-    model: { parts: Array<{ text?: string }> };
-    createdAt: string;
-  }>;
-}
+// Initialize Gemini AI
+const apiKey = getApiKey();
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+// Get storage key for user/channel
+const getStorageKey = (userId: string, channelId: string): string => {
+  return `${STORAGE_KEY}_${userId}_${channelId}`;
+};
 
 export class ChatService {
   /**
-   * Gửi message đến AI
+   * Gửi message đến AI và lưu vào localStorage
    */
-  static async sendMessage(request: SendMessageRequest): Promise<string> {
+  static async sendMessage(
+    userId: string,
+    channelId: string,
+    message: string
+  ): Promise<string> {
+    if (!apiKey) {
+      throw new Error(ERROR_MESSAGES.API_KEY_NOT_CONFIGURED);
+    }
+
+    if (!ai) {
+      throw new Error(ERROR_MESSAGES.API_KEY_NOT_CONFIGURED);
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
+      // Load history từ localStorage
+      const history = this.getHistory(userId, channelId);
+      
+      // Chuyển đổi history sang format Gemini
+      const geminiHistory = history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+      }));
+
+      // Tạo chat session
+      const chat = ai.chats.create({
+        model: "gemini-2.0-flash",
+        history: geminiHistory,
+        config: {
+          systemInstruction: "Bạn là trợ lý AI định hướng nghề nghiệp cho học sinh, sinh viên. Bạn giúp họ khám phá con đường học tập và sự nghiệp phù hợp. Hãy đưa ra lời khuyên hữu ích, thực tế và động viên họ.",
+        }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Lỗi khi gửi message');
-      }
+      // Gửi message
+      const response = await chat.sendMessage({
+        message: [{ text: message }],
+      });
 
-      const data = await response.json();
-      return data.data.text;
+      const responseText = response.text;
+
+      // Lưu vào localStorage
+      const newMessages: ChatMessage[] = [
+        ...history,
+        {
+          text: message,
+          role: 'user',
+          timestamp: new Date(),
+        },
+        {
+          text: responseText,
+          role: 'model',
+          timestamp: new Date(),
+        }
+      ];
+
+      localStorage.setItem(
+        getStorageKey(userId, channelId),
+        JSON.stringify(newMessages)
+      );
+
+      return responseText;
     } catch (error: any) {
       console.error('Error sending message:', error);
-      throw new Error(error.message || 'Không thể gửi message');
+      throw new Error(error?.message || ERROR_MESSAGES.GENERIC_ERROR);
     }
   }
 
   /**
-   * Lấy lịch sử chat
+   * Lấy lịch sử chat từ localStorage
    */
-  static async getHistory(userId: string, channelId: string): Promise<ChatMessage[]> {
+  static getHistory(userId: string, channelId: string): ChatMessage[] {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/chat/history?userId=${userId}&channelId=${channelId}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Lỗi khi lấy lịch sử');
-      }
-
-      const data: ChatHistoryResponse = await response.json();
+      const stored = localStorage.getItem(getStorageKey(userId, channelId));
+      if (!stored) return [];
       
-      // Chuyển đổi format từ server sang frontend
-      const messages: ChatMessage[] = [];
-      data.data.forEach((turn) => {
-        // User message
-        const userText = turn.user.parts.find(p => p.text)?.text || '';
-        if (userText) {
-          messages.push({
-            text: userText,
-            role: 'user',
-            timestamp: new Date(turn.createdAt),
-          });
-        }
-
-        // Model message
-        const modelText = turn.model.parts.find(p => p.text)?.text || '';
-        if (modelText) {
-          messages.push({
-            text: modelText,
-            role: 'model',
-            timestamp: new Date(turn.createdAt),
-          });
-        }
-      });
-
-      return messages;
-    } catch (error: any) {
-      console.error('Error getting history:', error);
-      throw new Error(error.message || 'Không thể lấy lịch sử');
+      const messages = JSON.parse(stored);
+      // Convert timestamp strings back to Date objects
+      return messages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      }));
+    } catch (error) {
+      console.error('Error loading history:', error);
+      return [];
     }
   }
 
   /**
    * Xóa lịch sử chat
    */
-  static async clearHistory(userId: string, channelId: string): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/clear`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, channelId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Lỗi khi xóa lịch sử');
-      }
-    } catch (error: any) {
-      console.error('Error clearing history:', error);
-      throw new Error(error.message || 'Không thể xóa lịch sử');
-    }
+  static clearHistory(userId: string, channelId: string): void {
+    localStorage.removeItem(getStorageKey(userId, channelId));
   }
 }
-

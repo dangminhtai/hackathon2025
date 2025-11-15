@@ -1,9 +1,9 @@
-// server/index.js
-import express from "express";
+// server/index.ts
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { connectDB } from "./db.js";
-import chatRoutes from "./routes/chatRoutes.js";
+import { connectDB } from "./db";
+import chatRoutes from "./routes/chatRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Health check
-app.get("/health", (req, res) => {
+app.get("/health", (req: Request, res: Response) => {
     res.json({ status: "ok", message: "Server is running" });
 });
 
@@ -24,7 +24,7 @@ app.get("/health", (req, res) => {
 app.use("/api/chat", chatRoutes);
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     console.error("Error:", err);
     res.status(500).json({
         success: false,
@@ -33,7 +33,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-async function startServer() {
+async function startServer(): Promise<void> {
     try {
         // Connect to MongoDB
         await connectDB();

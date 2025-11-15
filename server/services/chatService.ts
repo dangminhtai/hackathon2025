@@ -1,9 +1,11 @@
-// server/services/chatService.js
+// server/services/chatService.ts
 import { GoogleGenAI } from "@google/genai";
-import ChatHistory from "../models/ChatHistory.js";
-import { ERROR_MESSAGES } from "../config/errors.js";
+import ChatHistory, { IChatHistory, IChatTurn, IMessagePart } from "../models/ChatHistory";
+import { ERROR_MESSAGES } from "../../config/errors";
 
 export class ChatService {
+    private ai: GoogleGenAI;
+
     constructor() {
         const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
         if (!apiKey) {
@@ -15,7 +17,7 @@ export class ChatService {
     /**
      * Lấy hoặc tạo chat history
      */
-    async getOrCreateChat(userId, channelId) {
+    async getOrCreateChat(userId: string, channelId: string): Promise<IChatHistory> {
         let chat = await ChatHistory.findOne({ userId, channelId });
         
         if (!chat) {
@@ -34,7 +36,7 @@ export class ChatService {
     /**
      * Chuyển đổi turns từ DB sang format của Gemini
      */
-    convertTurnsToHistory(turns) {
+    convertTurnsToHistory(turns: IChatTurn[]): Array<{ role: string; parts: IMessagePart[] }> {
         return turns.map(turn => [
             {
                 role: "user",
@@ -50,7 +52,7 @@ export class ChatService {
     /**
      * Tạo chat session với Gemini
      */
-    async createChatSession(userId, channelId) {
+    async createChatSession(userId: string, channelId: string) {
         const chatDoc = await this.getOrCreateChat(userId, channelId);
         
         // Chuyển đổi history từ DB
@@ -71,7 +73,11 @@ export class ChatService {
     /**
      * Gửi message và lưu vào database
      */
-    async sendMessage(userId, channelId, messageParts) {
+    async sendMessage(
+        userId: string, 
+        channelId: string, 
+        messageParts: IMessagePart[]
+    ): Promise<{ text: string; turnId?: any }> {
         try {
             const { chat, chatDoc } = await this.createChatSession(userId, channelId);
             
@@ -81,7 +87,7 @@ export class ChatService {
             });
 
             // Lưu turn vào database
-            const newTurn = {
+            const newTurn: IChatTurn = {
                 user: {
                     parts: messageParts,
                 },
@@ -98,16 +104,16 @@ export class ChatService {
                 text: response.text,
                 turnId: chatDoc.turns[chatDoc.turns.length - 1]._id,
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error("Lỗi khi gửi message:", error);
-            throw new Error(error.message || ERROR_MESSAGES.GENERIC_ERROR);
+            throw new Error(error?.message || ERROR_MESSAGES.GENERIC_ERROR);
         }
     }
 
     /**
      * Lấy lịch sử chat
      */
-    async getChatHistory(userId, channelId) {
+    async getChatHistory(userId: string, channelId: string): Promise<IChatTurn[]> {
         const chat = await ChatHistory.findOne({ userId, channelId });
         return chat ? chat.turns : [];
     }
@@ -115,7 +121,7 @@ export class ChatService {
     /**
      * Xóa lịch sử chat
      */
-    async clearChatHistory(userId, channelId) {
+    async clearChatHistory(userId: string, channelId: string): Promise<{ success: boolean }> {
         await ChatHistory.deleteOne({ userId, channelId });
         return { success: true };
     }

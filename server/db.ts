@@ -1,9 +1,9 @@
-// server/db.js
+// server/db.ts
 import mongoose from "mongoose";
 
 mongoose.set('strictQuery', true);
 
-async function connectDB() {
+export async function connectDB(): Promise<void> {
     try {
         const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
         if (!mongoUri) {
@@ -16,6 +16,4 @@ async function connectDB() {
         throw err;
     }
 }
-
-export { connectDB };
 

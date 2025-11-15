@@ -37,16 +37,12 @@ const ChatBot: React.FC<ChatBotProps> = ({
     }
   }, [isOpen, userId, channelId]);
 
-  const loadHistory = async () => {
+  const loadHistory = () => {
     try {
-      setIsLoading(true);
-      const history = await ChatService.getHistory(userId, channelId);
+      const history = ChatService.getHistory(userId, channelId);
       setMessages(history);
     } catch (err) {
       console.error('Error loading history:', err);
-      setError(err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -66,11 +62,11 @@ const ChatBot: React.FC<ChatBotProps> = ({
     setError(null);
 
     try {
-      const response = await ChatService.sendMessage({
+      const response = await ChatService.sendMessage(
         userId,
         channelId,
-        message: input.trim(),
-      });
+        input.trim()
+      );
 
       const modelMessage: ChatMessage = {
         text: response,
@@ -89,16 +85,11 @@ const ChatBot: React.FC<ChatBotProps> = ({
     }
   }, [input, isLoading, userId, channelId]);
 
-  const handleClear = async () => {
+  const handleClear = () => {
     if (!confirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat?')) return;
-
-    try {
-      await ChatService.clearHistory(userId, channelId);
-      setMessages([]);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR);
-    }
+    ChatService.clearHistory(userId, channelId);
+    setMessages([]);
+    setError(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -154,7 +145,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {messages.length === 0 && !isLoading && (
+        {messages.length === 0 && !isLoading && !error && (
           <div className="text-center text-gray-500 mt-8">
             <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
             <p>Chào bạn! Tôi có thể giúp gì cho bạn về định hướng nghề nghiệp?</p>
