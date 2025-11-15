@@ -1,5 +1,5 @@
 
-import { Roadmap, Subject } from './types';
+import { Roadmap, Subject } from '../types';
 import { Code, Briefcase, Palette } from 'lucide-react';
 
 export const ROADMAPS: Roadmap[] = [

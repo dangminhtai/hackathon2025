@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { View } from '../types';
+import { UI_MESSAGES } from '../config/ui';
 import { Map, Compass } from 'lucide-react';
 
 interface HomeProps {
@@ -10,12 +11,12 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   return (
     <div className="text-center">
-      <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">Chào mừng bạn!</h2>
+      <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">{UI_MESSAGES.HOME.WELCOME_TITLE}</h2>
       <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-600">
-        Trợ lý AI này sẽ giúp bạn khám phá con đường học tập và sự nghiệp phù hợp nhất với bản thân.
+        {UI_MESSAGES.HOME.WELCOME_DESCRIPTION}
       </p>
       <p className="mt-2 max-w-2xl mx-auto text-lg text-slate-600">
-        Hãy cho chúng tôi biết bạn là ai:
+        {UI_MESSAGES.HOME.USER_QUESTION}
       </p>
 
       <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -28,12 +29,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               <Map className="h-8 w-8" />
             </div>
           </div>
-          <h3 className="mt-6 text-xl font-bold text-slate-900">Tôi chưa có chuyên ngành</h3>
+          <h3 className="mt-6 text-xl font-bold text-slate-900">{UI_MESSAGES.HOME.NO_MAJOR_TITLE}</h3>
           <p className="mt-2 text-base text-slate-600">
-            Khám phá các lộ trình học tập và nhận gợi ý chuyên ngành phù hợp từ AI.
+            {UI_MESSAGES.HOME.NO_MAJOR_DESCRIPTION}
           </p>
           <span className="absolute top-4 right-4 text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
-            Bắt đầu &rarr;
+            {UI_MESSAGES.HOME.START_ACTION}
           </span>
         </div>
 
@@ -46,12 +47,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               <Compass className="h-8 w-8" />
             </div>
           </div>
-          <h3 className="mt-6 text-xl font-bold text-slate-900">Tôi đã có chuyên ngành</h3>
+          <h3 className="mt-6 text-xl font-bold text-slate-900">{UI_MESSAGES.HOME.HAS_MAJOR_TITLE}</h3>
           <p className="mt-2 text-base text-slate-600">
-            Tìm kiếm định hướng nghề nghiệp dựa trên các môn học bạn yêu thích.
+            {UI_MESSAGES.HOME.HAS_MAJOR_DESCRIPTION}
           </p>
            <span className="absolute top-4 right-4 text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
-            Khám phá &rarr;
+            {UI_MESSAGES.HOME.EXPLORE_ACTION}
           </span>
         </div>
       </div>

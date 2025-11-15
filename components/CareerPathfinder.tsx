@@ -1,8 +1,10 @@
 
 import React, { useState, useCallback } from 'react';
-import { SUBJECTS } from '../constants';
+import { SUBJECTS } from '../config/constants';
 import { Subject, CareerSuggestion } from '../types';
 import { suggestCareersForSubjects } from '../services/geminiService';
+import { ERROR_MESSAGES } from '../config/errors';
+import { UI_MESSAGES } from '../config/ui';
 import LoadingSpinner from './common/LoadingSpinner';
 import BackButton from './common/BackButton';
 import { Lightbulb, Briefcase } from 'lucide-react';
@@ -28,7 +30,7 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
 
   const handleSubmit = useCallback(async () => {
     if (selectedSubjects.length === 0) {
-      setError("Vui lòng chọn ít nhất một môn học.");
+      setError(ERROR_MESSAGES.NO_SUBJECTS_SELECTED);
       return;
     }
     setIsLoading(true);
@@ -39,7 +41,7 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
       const result = await suggestCareersForSubjects(subjectNames);
       setSuggestions(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định');
+      setError(err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -56,9 +58,9 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
     return (
         <div>
             <BackButton onClick={reset} />
-            <h2 className="text-2xl font-bold text-center mb-2">Gợi ý nghề nghiệp dựa trên sở thích của bạn</h2>
+            <h2 className="text-2xl font-bold text-center mb-2">{UI_MESSAGES.CAREER_PATHFINDER.RESULT_TITLE}</h2>
             <p className="text-center text-slate-600 mb-8">
-                Các môn học đã chọn: {selectedSubjects.map(s => s.name).join(', ')}
+                {UI_MESSAGES.CAREER_PATHFINDER.SELECTED_SUBJECTS_LABEL} {selectedSubjects.map(s => s.name).join(', ')}
             </p>
 
             {isLoading && <LoadingSpinner />}
@@ -76,7 +78,7 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
                             <div className="mt-4 p-4 bg-gray-50 rounded-md">
                                 <h4 className="font-semibold text-slate-700 flex items-center">
                                     <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
-                                    Lý do phù hợp:
+                                    {UI_MESSAGES.CAREER_PATHFINDER.SUITABILITY_LABEL}
                                 </h4>
                                 <p className="mt-1 text-slate-600 text-sm">{suggestion.suitability}</p>
                             </div>
@@ -92,8 +94,8 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
     <div>
         <BackButton onClick={onBack} />
         <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold">Định hướng nghề nghiệp</h2>
-            <p className="mt-2 text-slate-600">Chọn những môn học bạn yêu thích hoặc học tốt nhất để AI gợi ý con đường sự nghiệp.</p>
+            <h2 className="text-3xl font-bold">{UI_MESSAGES.CAREER_PATHFINDER.TITLE}</h2>
+            <p className="mt-2 text-slate-600">{UI_MESSAGES.CAREER_PATHFINDER.DESCRIPTION}</p>
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -123,7 +125,7 @@ const CareerPathfinder: React.FC<CareerPathfinderProps> = ({ onBack }) => {
                 disabled={selectedSubjects.length === 0 || isLoading}
                 className="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors duration-300"
             >
-                {isLoading ? 'Đang phân tích...' : 'Nhận gợi ý từ AI'}
+                {isLoading ? UI_MESSAGES.CAREER_PATHFINDER.BUTTON_LOADING : UI_MESSAGES.CAREER_PATHFINDER.BUTTON_DEFAULT}
             </button>
         </div>
     </div>

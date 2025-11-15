@@ -1,103 +1,72 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { MajorSuggestion, CareerSuggestion } from '../types';
+import { geminiMajorPrompt } from '../config/prompt/majors/gemini_conf';
+import { geminiCareerPrompt } from '../config/prompt/careers/gemini_conf';
+import { getApiKey, API_CONFIG } from '../config/api';
+import { ERROR_MESSAGES, ERROR_LOG_MESSAGES } from '../config/errors';
 
-// Vite chỉ expose các biến có prefix VITE_ ra client-side
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+// Initialize API key
+const apiKey = getApiKey();
 
 if (!apiKey) {
-  console.warn('⚠️ GEMINI_API_KEY không được tìm thấy. Vui lòng thêm VITE_GEMINI_API_KEY vào file .env');
+  console.warn(`⚠️ ${ERROR_MESSAGES.API_KEY_NOT_FOUND}`);
 }
 
+// Initialize Gemini AI client
 const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
+/**
+ * Gợi ý chuyên ngành dựa trên lộ trình học tập
+ * @param roadmapName - Tên lộ trình học tập
+ * @returns Danh sách gợi ý chuyên ngành
+ */
 export const suggestMajorsForRoadmap = async (roadmapName: string): Promise<MajorSuggestion[]> => {
   try {
     if (!apiKey) {
-      throw new Error("API Key chưa được cấu hình. Vui lòng thêm VITE_GEMINI_API_KEY vào file .env");
+      throw new Error(ERROR_MESSAGES.API_KEY_NOT_CONFIGURED);
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: `Dựa trên lộ trình học tập "${roadmapName}", hãy đề xuất 5 chuyên ngành đại học phù hợp. Với mỗi chuyên ngành, cung cấp một mô tả ngắn gọn (2-3 câu) và danh sách các kỹ năng cốt lõi cần có.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              majorName: {
-                type: Type.STRING,
-                description: "Tên của chuyên ngành được đề xuất.",
-              },
-              description: {
-                type: Type.STRING,
-                description: "Mô tả ngắn gọn về chuyên ngành.",
-              },
-              coreSkills: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "Danh sách các kỹ năng cốt lõi cần thiết cho chuyên ngành.",
-              },
-            },
-            required: ["majorName", "description", "coreSkills"],
-          },
-        },
-      },
+      model: geminiMajorPrompt.model,
+      contents: geminiMajorPrompt.contents.replace("{{roadmapName}}", roadmapName),
+      config: geminiMajorPrompt.resSchema,
     });
 
     const jsonText = response.text.trim();
     const suggestions: MajorSuggestion[] = JSON.parse(jsonText);
     return suggestions;
   } catch (error: any) {
-    console.error("Lỗi khi gọi Gemini API để gợi ý chuyên ngành:", error);
-    const errorMessage = error?.message || "Không thể nhận được gợi ý chuyên ngành. Vui lòng thử lại.";
+    console.error(ERROR_LOG_MESSAGES.MAJOR_SUGGESTION_ERROR, error);
+    const errorMessage = error?.message || ERROR_MESSAGES.MAJOR_SUGGESTION_FAILED;
     throw new Error(errorMessage);
   }
 };
 
+/**
+ * Gợi ý nghề nghiệp dựa trên các môn học yêu thích
+ * @param subjectNames - Danh sách tên môn học
+ * @returns Danh sách gợi ý nghề nghiệp
+ */
 export const suggestCareersForSubjects = async (subjectNames: string[]): Promise<CareerSuggestion[]> => {
   try {
     if (!apiKey) {
-      throw new Error("API Key chưa được cấu hình. Vui lòng thêm VITE_GEMINI_API_KEY vào file .env");
+      throw new Error(ERROR_MESSAGES.API_KEY_NOT_CONFIGURED);
     }
 
+    const subjectsText = subjectNames.join(', ');
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: `Tôi là một sinh viên đại học và các môn học yêu thích của tôi là: ${subjectNames.join(', ')}. Dựa trên những sở thích này, hãy đề xuất 5 định hướng nghề nghiệp tiềm năng. Với mỗi định hướng, cung cấp một mô tả ngắn gọn về công việc và lý do tại sao nó phù hợp với các môn học đã chọn.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              careerName: {
-                type: Type.STRING,
-                description: "Tên của định hướng nghề nghiệp.",
-              },
-              description: {
-                type: Type.STRING,
-                description: "Mô tả ngắn gọn về công việc và triển vọng.",
-              },
-              suitability: {
-                type: Type.STRING,
-                description: "Giải thích tại sao nghề nghiệp này lại phù hợp với các môn học đã chọn.",
-              },
-            },
-            required: ["careerName", "description", "suitability"],
-          },
-        },
-      },
+      model: geminiCareerPrompt.model,
+      contents: geminiCareerPrompt.contents.replace("{{subjects}}", subjectsText),
+      config: geminiCareerPrompt.resSchema,
     });
     
     const jsonText = response.text.trim();
     const suggestions: CareerSuggestion[] = JSON.parse(jsonText);
     return suggestions;
   } catch (error: any) {
-    console.error("Lỗi khi gọi Gemini API để gợi ý nghề nghiệp:", error);
-    const errorMessage = error?.message || "Không thể nhận được gợi ý nghề nghiệp. Vui lòng thử lại.";
+    console.error(ERROR_LOG_MESSAGES.CAREER_SUGGESTION_ERROR, error);
+    const errorMessage = error?.message || ERROR_MESSAGES.CAREER_SUGGESTION_FAILED;
     throw new Error(errorMessage);
   }
 };

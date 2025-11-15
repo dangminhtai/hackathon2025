@@ -1,8 +1,10 @@
 
 import React, { useState, useCallback } from 'react';
-import { ROADMAPS } from '../constants';
+import { ROADMAPS } from '../config/constants';
 import { Roadmap as RoadmapType, MajorSuggestion } from '../types';
 import { suggestMajorsForRoadmap } from '../services/geminiService';
+import { ERROR_MESSAGES } from '../config/errors';
+import { UI_MESSAGES } from '../config/ui';
 import LoadingSpinner from './common/LoadingSpinner';
 import BackButton from './common/BackButton';
 import { CheckCircle, Zap } from 'lucide-react';
@@ -26,7 +28,7 @@ const RoadmapSelector: React.FC<RoadmapSelectorProps> = ({ onBack }) => {
       const result = await suggestMajorsForRoadmap(roadmap.name);
       setSuggestions(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định');
+      setError(err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC_ERROR);
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +44,7 @@ const RoadmapSelector: React.FC<RoadmapSelectorProps> = ({ onBack }) => {
     return (
       <div>
         <BackButton onClick={resetSelection} />
-        <h2 className="text-2xl font-bold text-center mb-2">Gợi ý chuyên ngành cho lộ trình</h2>
+        <h2 className="text-2xl font-bold text-center mb-2">{UI_MESSAGES.ROADMAP_SELECTOR.RESULT_TITLE}</h2>
         <p className="text-indigo-600 font-semibold text-center text-lg mb-8">{selectedRoadmap.name}</p>
         
         {isLoading && <LoadingSpinner />}
@@ -58,7 +60,7 @@ const RoadmapSelector: React.FC<RoadmapSelectorProps> = ({ onBack }) => {
                 </h3>
                 <p className="mt-2 text-slate-600">{suggestion.description}</p>
                 <div className="mt-4">
-                  <h4 className="font-semibold text-slate-700">Kỹ năng cốt lõi:</h4>
+                  <h4 className="font-semibold text-slate-700">{UI_MESSAGES.ROADMAP_SELECTOR.CORE_SKILLS_LABEL}</h4>
                   <ul className="mt-2 space-y-1">
                     {suggestion.coreSkills.map((skill, i) => (
                       <li key={i} className="flex items-center text-slate-600">
@@ -80,8 +82,8 @@ const RoadmapSelector: React.FC<RoadmapSelectorProps> = ({ onBack }) => {
     <div>
       <BackButton onClick={onBack} />
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold">Chọn một Lộ trình học tập</h2>
-        <p className="mt-2 text-slate-600">AI sẽ phân tích và đưa ra các chuyên ngành phù hợp nhất với lựa chọn của bạn.</p>
+        <h2 className="text-3xl font-bold">{UI_MESSAGES.ROADMAP_SELECTOR.TITLE}</h2>
+        <p className="mt-2 text-slate-600">{UI_MESSAGES.ROADMAP_SELECTOR.DESCRIPTION}</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {ROADMAPS.map((roadmap) => (
