@@ -37,12 +37,15 @@ const ChatBot: React.FC<ChatBotProps> = ({
     }
   }, [isOpen, userId, channelId]);
 
-  const loadHistory = () => {
+  const loadHistory = async () => {
     try {
-      const history = ChatService.getHistory(userId, channelId);
+      setIsLoading(true);
+      const history = await ChatService.getHistory(userId, channelId);
       setMessages(history);
     } catch (err) {
       console.error('Error loading history:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
